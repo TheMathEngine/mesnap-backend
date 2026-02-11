@@ -14,7 +14,7 @@ const io = socketIo(server, {
 });
 
 const JWT_SECRET = 'your-super-secret-key-change-this-in-production';
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
