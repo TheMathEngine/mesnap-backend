@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Classroom</title>
+<style>
+    .VIPviewport {
+        width: 1500px;
+        height: 800px;
+        border: none;
+    }
+
+    body.no-select {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+    }
+
+    #safety-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(255, 255, 255, 0.98);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 9999;
+        transition: opacity 0.15s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 18px;
+        color: #111111;
+        text-align: center;
+        padding: 20px;
+    }
+
+    #safety-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+</style>
+</head>
+<body class="no-select">
+    <div id="safety-overlay" aria-hidden="true">
+        Protected content hidden
+    </div>
+    <iframe 
+    class="VIPviewport" 
+    src="https://math-engine.pop.site/?msopen=/content-library/node/math-engine-vip" 
+    loading="lazy">     
+    </iframe>
+
+    <script>
+        (function () {
+            var overlay = document.getElementById('safety-overlay');
+
+            var overlayTimer = null;
+
+            function showOverlay(durationMs) {
+                if (!overlay) {
+                    return;
+                }
+                if (overlayTimer) {
+                    window.clearTimeout(overlayTimer);
+                }
+                overlay.classList.add('active');
+                overlayTimer = window.setTimeout(function () {
+                    overlay.classList.remove('active');
+                }, durationMs || 1200);
+            }
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) {
+                    showOverlay(1200);
+                }
+            });
+
+            window.addEventListener('blur', function () {
+                showOverlay(1200);
+            });
+
+            document.addEventListener('copy', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('cut', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('paste', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('selectstart', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('dragstart', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('contextmenu', function (event) {
+                event.preventDefault();
+            });
+
+            document.addEventListener('keydown', function (event) {
+                var isModifier = event.ctrlKey || event.metaKey;
+                if (isModifier) {
+                    var keyLower = (event.key || '').toLowerCase();
+                    if (keyLower === 'c' || keyLower === 'v' || keyLower === 'x' || keyLower === 'a') {
+                        event.preventDefault();
+                        return;
+                    }
+                }
+                var key = event.key || '';
+                var isPrintScreen = key === 'PrintScreen';
+                var isMacShot = event.metaKey && event.shiftKey && (key === '3' || key === '4' || key === '5');
+                var isWinSnip = event.metaKey && event.shiftKey && key.toLowerCase() === 's';
+
+                if (isPrintScreen || isMacShot || isWinSnip) {
+                    showOverlay(1500);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

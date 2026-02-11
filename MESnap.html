@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MESnap - Real-time Messaging</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #323232; }
+        
+        .auth-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: #323232;
+        }
+        
+        .auth-container {
+            background: #2a2a2a;
+            border-radius: 8px;
+            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .auth-header {
+            background: linear-gradient(135deg, #FFFC00 0%, #FFD700 100%);
+            color: #323232;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .auth-header h1 {
+            font-size: 36px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .auth-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .auth-content {
+            padding: 40px 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #FFFC00;
+            margin-bottom: 8px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #1a1a1a;
+            color: #fff;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #FFFC00;
+            box-shadow: 0 0 0 3px rgba(255, 252, 0, 0.2);
+        }
+        
+        .form-group input::placeholder {
+            color: #888;
+        }
+        
+        .error-msg {
+            color: #ff6b6b;
+            font-size: 13px;
+            padding: 12px;
+            background: rgba(255, 100, 100, 0.2);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .error-msg.show {
+            display: block;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #FFFC00 0%, #FFD700 100%);
+            color: #323232;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 252, 0, 0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .auth-toggle {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #444;
+        }
+        
+        .auth-toggle p {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        
+        .toggle-btn {
+            background: #1a1a1a;
+            color: #FFFC00;
+            border: 1px solid #444;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .toggle-btn:hover {
+            background: #0a0a0a;
+            border-color: #FFFC00;
+        }
+        
+        #signupForm { display: none; }
+        #signupForm.active { display: block; }
+        #loginForm.hidden { display: none; }
+        
+        .app-screen {
+            display: none;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+        
+        .app-screen.active {
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: #2a2a2a;
+            padding: 20px;
+            border-right: 1px solid #444;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar h2 {
+            color: #FFFC00;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .admin-panel-btn {
+            background: linear-gradient(135deg, #FFFC00 0%, #FFD700 100%);
+            color: #323232;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 15px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .admin-panel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 252, 0, 0.3);
+        }
+        
+        .admin-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .admin-modal.active {
+            display: flex;
+        }
+        
+        .admin-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            color: #fff;
+        }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 15px;
+        }
+        
+        .admin-header h2 {
+            color: #FFFC00;
+            margin: 0;
+        }
+        
+        .close-admin {
+            background: #444;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .close-admin:hover {
+            background: #555;
+        }
+        
+        .admin-section {
+            margin-bottom: 25px;
+        }
+        
+        .admin-section h3 {
+            color: #FFFC00;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .users-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            background: #1a1a1a;
+        }
+        
+        .user-item {
+            background: #2a2a2a;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #444;
+        }
+        
+        .user-item-info {
+            flex: 1;
+        }
+        
+        .user-item-name {
+            color: #FFFC00;
+            font-weight: 600;
+        }
+        
+        .user-item-email {
+            color: #999;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        
+        .btn-delete-user {
+            background: rgba(255, 100, 100, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-delete-user:hover {
+            background: rgba(255, 100, 100, 0.3);
+            border-color: rgba(255, 100, 100, 0.5);
+        }
+
+        .admin-msg-item {
+            background: #1a1a1a;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .admin-msg-from {
+            color: #FFFC00;
+            font-weight: 600;
+        }
+
+        .admin-msg-to {
+            color: #FFFC00;
+            font-weight: 600;
+        }
+
+        .admin-msg-text {
+            color: #ccc;
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .admin-msg-time {
+            color: #666;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .user-actions button {
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+
+        .btn-view-user {
+            background: rgba(255, 252, 0, 0.2);
+            color: #FFFC00;
+            border: 1px solid rgba(255, 252, 0, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-view-user:hover {
+            background: rgba(255, 252, 0, 0.3);
+            border-color: rgba(255, 252, 0, 0.5);
+        }
+
+        .btn-clear-msgs {
+            background: rgba(255, 252, 0, 0.2);
+            color: #FFFC00;
+            border: 1px solid rgba(255, 252, 0, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-clear-msgs:hover {
+            background: rgba(255, 252, 0, 0.3);
+            border-color: rgba(255, 252, 0, 0.5);
+        }
+        
+        .btn-delete-msg {
+            background: rgba(255, 100, 100, 0.2);
+            color: #ff6b6b;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-left: 4px;
+            transition: all 0.3s;
+        }
+        
+        .btn-delete-msg:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+        
+        .message.own .delete-btn {
+            margin-left: 8px;
+        }
+        
+        .btn-add {
+            background: linear-gradient(135deg, #FFFC00 0%, #FFD700 100%);
+            color: #323232;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 15px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 252, 0, 0.3);
+        }
+        
+        .friends-list {
+            flex: 1;
+            list-style: none;
+            overflow-y: auto;
+        }
+        
+        .friend-item {
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+            background: #1a1a1a;
+            position: relative;
+            border: 1px solid #444;
+        }
+        
+        .friend-item:hover {
+            background: #333;
+        }
+        
+        .friend-item.active {
+            background: #FFFC00;
+            border-left: 4px solid #FFFC00;
+            padding-left: 12px;
+        }
+        
+        .friend-item.active .friend-name {
+            color: #323232;
+        }
+        
+        .friend-name {
+            font-weight: 600;
+            color: #fff;
+            font-size: 13px;
+        }
+        
+        .owner-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #FFFC00, #FFD700);
+            color: #323232;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 6px;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(255, 252, 0, 0.5);
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(255, 252, 0, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 252, 0, 0.8);
+            }
+        }
+        
+        .badge {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: #e74c3c;
+            color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+        }
+        
+        .user-info {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        
+        .user-info strong {
+            display: block;
+            color: #FFFC00;
+            margin-bottom: 5px;
+        }
+        
+        .btn-logout {
+            background: #444;
+            color: #ccc;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        
+        .btn-logout:hover {
+            background: #555;
+            color: #fff;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            background: #323232;
+            padding: 20px;
+            border-bottom: 1px solid #444;
+            display: none;
+        }
+        
+        .chat-header.active {
+            display: block;
+        }
+        
+        .chat-header h3 {
+            color: #FFFC00;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #323232;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+        }
+        
+        .messages.active {
+            align-items: flex-start;
+            justify-content: flex-start;
+            flex-direction: column;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-break: break-word;
+            animation: slideIn 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.sent {
+            background: linear-gradient(135deg, #FFFC00 0%, #FFD700 100%);
+            color: #323232;
+            margin-left: auto;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .message.received {
+            background: #2a2a2a;
+            color: #fff;
+            margin-right: auto;
+        }
+        
+        .message-sender {
+            font-size: 11px;
+            font-weight: 700;
+            color: #FFFC00;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .message.sent .message-sender {
+            color: #555;
+        }
+        
+        .message-meta {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+            display: block;
+        }
+        
+        .message.sent .message-meta {
+            color: #666;
+        }
+        
+        .message img.gif,
+        .message img {
+            max-width: 280px;
+            max-height: 400px;
+            height: auto;
+            border-radius: 12px;
+            cursor: pointer;
+            display: block;
+            margin: 4px 0;
+            object-fit: cover;
+        }
+        
+        .snap-message-content {
+            cursor: pointer;
+        }
+        
+        .snap-box {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.1);
+            margin-top: 4px;
+        }
+        
+        .snap-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 3px 20px;
+            background: rgba(255, 252, 0, 0.15);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: #FFFC00;
+            white-space: nowrap;
+            align-self: flex-end;
+        }
+        
+        .snap-text::before {
+            content: '▶';
+            font-size: 0.65rem;
+            display: inline-block;
+        }
+        
+        .message.received .snap-text {
+            align-self: flex-start;
+        }
+        
+        .input-area {
+            padding: 20px;
+            background: #323232;
+            border-top: 1px solid #444;
+            display: none;
+            gap: 10px;
+        }
+        
+        .input-area.active {
+            display: flex;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #444;
+            border-radius: 20px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #2a2a2a;
+            color: #fff;
+            transition: all 0.3s;
+        }
+        
+        .message-input:focus {
+            outline: none;
+            border-color: #FFFC00;
+            background: #1a1a1a;
+        }
+        
+        .message-input::placeholder {
+            color: #888;
+        }
+        
+        .btn-send {
+            background: linear-gradient(135deg, #FFFC00 0%, #FFD700 100%);
+            color: #323232;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 252, 0, 0.3);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal-content h3 {
+            color: #FFFC00;
+            margin-bottom: 15px;
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #444;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #1a1a1a;
+            color: #fff;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .modal-content input:focus {
+            outline: none;
+            border-color: #FFFC00;
+            background: #333;
+        }
+        
+        .modal-content input::placeholder {
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Screen -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h1>MESnap</h1>
+                <p>Real-time messaging for friends</p>
+            </div>
+            
+            <div class="auth-content">
+                <div class="error-msg" id="authError"></div>
+                
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label>Email or Username</label>
+                        <input type="text" id="loginEmail" placeholder="you@example.com or username">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••">
+                    </div>
+                    <button class="btn-primary" onclick="login()">Login</button>
+                </div>
+                
+                <!-- Signup Form -->
+                <div id="signupForm">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="text" id="signupEmail" placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="signupUsername" placeholder="username">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="signupPassword" placeholder="••••••••">
+                    </div>
+                    <button class="btn-primary" onclick="signup()">Create Account</button>
+                </div>
+                
+                <!-- Toggle -->
+                <div class="auth-toggle">
+                    <p id="toggleText">Don't have an account?</p>
+                    <button class="toggle-btn" onclick="toggleAuth()">Create New Account</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Screen -->
+    <div class="app-screen" id="appScreen">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>MESnap</h2>
+            <button class="btn-add" onclick="openAddFriend()">+ Add Friend</button>
+            <button class="admin-panel-btn" id="adminBtn" style="display:none;" onclick="openAdminPanel()">⚙️ Admin Panel</button>
+            <ul class="friends-list" id="friendsList"></ul>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <strong id="currentUsername">User</strong>
+                    <span id="currentEmail">user@example.com</span>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header" id="chatHeader">
+                <h3 id="chatName">Select a friend to start chatting</h3>
+            </div>
+            <div class="messages" id="messagesArea">Select a friend to start chatting</div>
+            <div class="input-area" id="inputArea">
+                <input type="text" class="message-input" id="messageInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="previewImage()">
+                <button class="btn-send" onclick="document.getElementById('imageInput').click()" title="Send Image">📷</button>
+                <button class="btn-send" onclick="sendMessage()">Send</button>
+            </div>
+            <div id="imagePreview" style="display:none; padding:10px; background:#f5f5f5; border: 1px solid #ddd; border-radius:8px; text-align:center;">
+                <img id="previewImg" style="max-height:150px; border-radius:8px; margin-bottom:10px;">
+                <button class="btn-send" onclick="sendImage()" style="margin-right:5px; width:48%;">Send</button>
+                <button class="toggle-btn" onclick="cancelImage()" style="width:48%;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Friend Modal -->
+    <div class="modal" id="addFriendModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 20px;">Add Friend</h3>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="friendUsername" placeholder="username">
+            </div>
+            <button class="btn-primary" onclick="addFriend()" style="width:100%; margin-bottom: 10px;">Add Friend</button>
+            <button class="toggle-btn" onclick="closeAddFriend()">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Admin Panel Modal -->
+    <div class="admin-modal" id="adminModal">
+        <div class="admin-content">
+            <div class="admin-header">
+                <h2>👑 Admin Panel</h2>
+                <button class="close-admin" onclick="closeAdminPanel()">Close</button>
+            </div>
+            
+            <div class="admin-section">
+                <h3>📊 System Stats</h3>
+                <p>Total Users: <strong id="totalUsers" style="color: #FFFC00;">0</strong></p>
+                <p>Total Messages: <strong id="totalMessages" style="color: #FFFC00;">0</strong></p>
+                <p>Total Friendships: <strong id="totalFriendships" style="color: #FFFC00;">0</strong></p>
+            </div>
+
+            <div class="admin-section">
+                <h3>�️ Clear Chat Between Users</h3>
+                <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                    <select id="clearChatUser1" style="flex:1; min-width:150px; padding:8px; border-radius:6px; border:1px solid #444; background:#1a1a1a; color:#fff; font-family:inherit;">
+                        <option value="">Select User 1</option>
+                    </select>
+                    <select id="clearChatUser2" style="flex:1; min-width:150px; padding:8px; border-radius:6px; border:1px solid #444; background:#1a1a1a; color:#fff; font-family:inherit;">
+                        <option value="">Select User 2</option>
+                    </select>
+                    <button class="btn-primary" onclick="clearChat()" style="padding:8px 16px;">Clear Chat</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>�📢 Broadcast Message</h3>
+                <input type="text" id="broadcastInput" placeholder="Message to send to all users..." style="width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #444; background:#1a1a1a; color:#fff; font-family:inherit;">
+                <button class="btn-primary" onclick="sendBroadcast()" style="width:100%;">Send Broadcast</button>
+            </div>
+
+            <div class="admin-section">
+                <h3>📨 Recent Messages (Last 100)</h3>
+                <button class="btn-primary" onclick="loadAllMessages()" style="width:100%; margin-bottom:10px;">Load Messages</button>
+                <div class="users-list" id="adminMessagesList" style="max-height:200px;"></div>
+            </div>
+            
+            <div class="admin-section">
+                <h3>👥 All Users</h3>
+                <input type="text" id="userSearch" placeholder="Search users..." style="width:100%; padding:8px; margin-bottom:10px; border-radius:6px; border:1px solid #444; background:#1a1a1a; color:#fff; font-family:inherit;" oninput="filterUsers()">
+                <div class="users-list" id="adminUsersList"></div>
+            </div>
+
+            <div class="admin-section">
+                <h3>🚫 IP Bans</h3>
+                <button class="btn-primary" onclick="loadIPBans()" style="width:100%; margin-bottom:10px;">Load Banned IPs</button>
+                <div class="users-list" id="ipBansList" style="max-height:250px;"></div>
+            </div>
+
+            <div class="admin-section">
+                <h3>🛡️ Hardware Bans</h3>
+                <button class="btn-primary" onclick="loadHardwareBans()" style="width:100%; margin-bottom:10px;">Load Banned Devices</button>
+                <div class="users-list" id="hardwareBansList" style="max-height:250px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IP Ban Modal -->
+    <div class="admin-modal" id="ipBanModal">
+        <div class="admin-content" style="max-width: 500px;">
+            <div class="admin-header">
+                <h2>🚫 Ban IP Address</h2>
+                <button class="close-admin" onclick="closeIPBanModal()">Close</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p style="color: #999; margin-bottom: 20px;">IP: <strong id="banIPAddress" style="color: #FFFC00;"></strong></p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; color: #FFFC00; margin-bottom: 5px; font-size: 13px; font-weight: 600;">Reason (Optional)</label>
+                    <input type="text" id="banReason" placeholder="Reason for ban..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: #fff; font-family: inherit;">
+                </div>
+                
+                <button class="btn-primary" onclick="confirmIPBan()" style="width: 100%;">Ban IP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hardware Ban Modal -->
+    <div class="admin-modal" id="hardwareBanModal">
+        <div class="admin-content" style="max-width: 500px;">
+            <div class="admin-header">
+                <h2>🛡️ Ban Device</h2>
+                <button class="close-admin" onclick="closeHardwareBanModal()">Close</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p style="color: #999; margin-bottom: 20px;">Device: <strong id="banDeviceFingerprint" style="color: #FFFC00; font-family: monospace;"></strong></p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; color: #FFFC00; margin-bottom: 5px; font-size: 13px; font-weight: 600;">Reason (Optional)</label>
+                    <input type="text" id="banDeviceReason" placeholder="Reason for ban..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: #fff; font-family: inherit;">
+                </div>
+                
+                <button class="btn-primary" onclick="confirmHardwareBan()" style="width: 100%;">Ban Device</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snap Viewer Modal -->
+    <div id="snapModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; align-items:center; justify-content:center; flex-direction:column; gap:20px;">
+        <div style="position:relative; max-width:95%; max-height:90vh; display:flex; align-items:center; justify-content:center;">
+            <img id="snapImage" style="max-width:100%; max-height:90vh; width:auto; height:auto; border-radius:0; object-fit:contain;">
+            <button onclick="closeSnap()" style="position:absolute; top:15px; right:15px; background:linear-gradient(135deg, #FFFC00 0%, #FFD700 100%); color:#323232; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; z-index:10; transition:all 0.3s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(255, 252, 0, 0.3)'" onmouseout="this.style.boxShadow='none'">✕ Close</button>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="admin-modal" id="editUserModal">
+        <div class="admin-content" style="max-width: 500px;">
+            <div class="admin-header">
+                <h2>✏️ Edit User</h2>
+                <button class="close-admin" onclick="closeEditUser()">Close</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <p style="color: #999; margin-bottom: 20px;">Editing: <strong id="editUserName" style="color: #FFFC00;"></strong></p>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; color: #FFFC00; margin-bottom: 5px; font-size: 13px; font-weight: 600;">New Username</label>
+                    <input type="text" id="editUsername" placeholder="Leave empty to keep current" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: #fff; font-family: inherit;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; color: #FFFC00; margin-bottom: 5px; font-size: 13px; font-weight: 600;">New Email</label>
+                    <input type="email" id="editEmail" placeholder="Leave empty to keep current" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: #fff; font-family: inherit;">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; color: #FFFC00; margin-bottom: 5px; font-size: 13px; font-weight: 600;">New Password</label>
+                    <input type="password" id="editPassword" placeholder="Leave empty to keep current" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: #fff; font-family: inherit;">
+                </div>
+                
+                <button class="btn-primary" onclick="saveUserEdit()" style="width: 100%;">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket=null,currentUser=null,selectedFriend=null;
+        
+        function showError(msg){
+            const el = document.getElementById('authError');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+        
+        function toggleAuth(){
+            const login = document.getElementById('loginForm');
+            const signup = document.getElementById('signupForm');
+            const toggle = document.getElementById('toggleText');
+            const btn = event.target;
+            if (login.style.display !== 'none') {
+                login.style.display = 'none';
+                signup.style.display = 'block';
+                toggle.textContent = 'Already have an account?';
+                btn.textContent = 'Back to Login';
+            } else {
+                login.style.display = 'block';
+                signup.style.display = 'none';
+                toggle.textContent = "Don't have an account?";
+                btn.textContent = 'Create New Account';
+            }
+            document.getElementById('authError').classList.remove('show');
+        }
+        
+        function getDeviceInfo() {
+            return {
+                screenRes: `${window.innerWidth}x${window.innerHeight}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: navigator.language,
+                userAgent: navigator.userAgent
+            };
+        }
+        
+        async function login(){
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            if (!email || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+            try {
+                const deviceInfo = getDeviceInfo();
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password, ...deviceInfo})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Login failed');
+                localStorage.setItem('mesnap_token', data.token);
+                currentUser = data.user;
+                initApp();
+            } catch(err) {
+                showError(err.message);
+            }
+        }
+        
+        async function signup(){
+            const email = document.getElementById('signupEmail').value.trim();
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            if (!email || !username || !password) {
+                showError('Please fill in all fields');
+                return;
+            }
+            try {
+                const deviceInfo = getDeviceInfo();
+                const res = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, username, password, ...deviceInfo})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Signup failed');
+                localStorage.setItem('mesnap_token', data.token);
+                currentUser = data.user;
+                initApp();
+            } catch(err) {
+                showError(err.message);
+            }
+        }
+        
+        function initApp(){document.getElementById('authScreen').style.display='none';document.getElementById('appScreen').classList.add('active');const usernameEl=document.getElementById('currentUsername');usernameEl.textContent=currentUser.username;if(currentUser.username==='coopsiguess'){usernameEl.innerHTML=currentUser.username+' <span class="owner-badge">👑 Owner</span>';document.getElementById('adminBtn').style.display='block';}document.getElementById('currentEmail').textContent=currentUser.email;socket=io({reconnection:true,reconnectionDelay:1000,reconnectionDelayMax:5000,reconnectionAttempts:Infinity});socket.on('connect',()=>{console.log('Socket connected, emitting auth');socket.emit('auth',localStorage.getItem('mesnap_token'));});socket.on('connect_error',(error)=>{console.error('Socket connection error:',error);});socket.on('receive_message',(msg)=>{console.log('Received message:',msg);if(selectedFriend&&msg.sender_id===selectedFriend.id){displayMessage(msg);socket.emit('mark_as_read',{senderId:msg.sender_id});}loadFriends();});socket.on('message_sent',(msg)=>{console.log('Message sent confirmation:',msg);if(selectedFriend){displayMessage(msg);}});socket.on('snap_viewed',(data)=>{console.log('Snap viewed:',data);const msgEl=document.querySelector(`[data-msg-id="${data.messageId}"]`);if(msgEl){const statusIcon=msgEl.querySelector('.status-icon');const statusText=msgEl.querySelector('.status-text');if(statusIcon){statusIcon.textContent='■';statusIcon.classList.remove('delivered');statusIcon.classList.add('opened');}if(statusText){statusText.textContent='OPENED';}}});loadFriends();}
+        
+        async function loadFriends(){try{const res=await fetch('/api/friends',{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const friends=await res.json();const list=document.getElementById('friendsList');list.innerHTML='';friends.forEach(f=>{const li=document.createElement('li');li.className='friend-item';if(selectedFriend&&f.id===selectedFriend.id)li.classList.add('active');const name=document.createElement('div');name.className='friend-name';name.textContent=f.username;if(f.username==='coopsiguess'){const badge=document.createElement('span');badge.className='owner-badge';badge.textContent='👑 Owner';name.appendChild(badge);}li.appendChild(name);if(f.unread_count>0){const badge=document.createElement('div');badge.className='badge';badge.textContent=f.unread_count;li.appendChild(badge);}li.onclick=()=>selectFriend(f);list.appendChild(li);});}catch(err){console.error(err);}}
+        
+        async function selectFriend(friend){selectedFriend=friend;document.getElementById('chatName').textContent=friend.username;document.getElementById('chatHeader').classList.add('active');document.getElementById('inputArea').classList.add('active');const mc=document.getElementById('messagesArea');mc.innerHTML='';mc.classList.add('active');try{const res=await fetch(`/api/messages/${friend.id}`,{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const msgs=await res.json();msgs.forEach(m=>displayMessage(m));mc.scrollTop=mc.scrollHeight;loadFriends();}catch(err){console.error(err);}}
+        
+        function displayMessage(msg){const div=document.createElement('div');div.className='message '+(msg.sender_id===currentUser.id?'sent':'received');div.setAttribute('data-id',msg.id);div.setAttribute('data-msg-id',msg.id);if(msg.sender_id!==currentUser.id&&selectedFriend){const sender=document.createElement('span');sender.className='message-sender';sender.textContent=selectedFriend.username;div.appendChild(sender);}if(msg.image){if(msg.sender_id===currentUser.id){const snapBox=document.createElement('div');snapBox.className='snap-box '+(msg.opened_at?'sent-opened':'sent');snapBox.innerHTML='<span style="font-size:2rem;">'+(msg.opened_at?'○':'●')+'</span>';snapBox.style.cssText='cursor:pointer; padding:20px; background:rgba(0,0,0,0.1); border-radius:12px; text-align:center;';snapBox.onclick=()=>openSnap(msg.image,msg.id,msg.sender_id,div);div.appendChild(snapBox);const snapText=document.createElement('span');snapText.className='snap-text';snapText.textContent=msg.opened_at?'OPENED':'DELIVERED';div.appendChild(snapText);}else{const snapBox=document.createElement('div');snapBox.className='snap-box received-snap';snapBox.innerHTML='<span style="font-size:2rem; color:#FFFC00;">●</span>';snapBox.style.cssText='cursor:pointer; padding:20px; background:rgba(255,252,0,0.1); border-radius:12px; text-align:center;';snapBox.onclick=()=>openSnap(msg.image,msg.id,msg.sender_id,div);div.appendChild(snapBox);const snapText=document.createElement('span');snapText.className='snap-text';snapText.textContent=msg.opened_at?'Tap to view again':'Tap to view';div.appendChild(snapText);}}else{const textNode=document.createTextNode(msg.text);div.appendChild(textNode);}const meta=document.createElement('div');meta.className='message-meta';const date=new Date(msg.created_at||Date.now());meta.textContent=date.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});div.appendChild(meta);document.getElementById('messagesArea').appendChild(div);document.getElementById('messagesArea').scrollTop=document.getElementById('messagesArea').scrollHeight;}
+        
+        function openSnap(imageSrc,messageId,senderId,msgElement){document.getElementById('snapImage').src=imageSrc;const modal=document.getElementById('snapModal');modal.style.display='flex';modal.setAttribute('data-msg-id',messageId);if(senderId!==currentUser.id&&messageId){socket.emit('snap_opened',{messageId,senderId});const snapText=msgElement.querySelector('.snap-text');if(snapText&&snapText.textContent==='Tap to view'){snapText.textContent='Tap to view again';}}}
+        function closeSnap(messageId,msgElement){document.getElementById('snapModal').style.display='none';}
+        
+        let selectedImage=null;
+        function previewImage(){const file=document.getElementById('imageInput').files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){selectedImage=e.target.result;document.getElementById('previewImg').src=selectedImage;document.getElementById('imagePreview').style.display='block';document.getElementById('messageInput').style.display='none';document.querySelectorAll('.input-area button')[1].style.display='none';};reader.readAsDataURL(file);}
+        function cancelImage(){selectedImage=null;document.getElementById('imageInput').value='';document.getElementById('imagePreview').style.display='none';document.getElementById('messageInput').style.display='block';document.querySelectorAll('.input-area button')[1].style.display='block';}
+        function sendImage(){if(!selectedImage||!selectedFriend){alert('Select an image and friend');return;}if(!socket||!socket.connected){alert('Connection lost. Refreshing...');location.reload();return;}console.log('Sending image to',selectedFriend.username);socket.emit('send_message',{receiverId:selectedFriend.id,image:selectedImage,isImage:true});cancelImage();}
+        
+        function sendMessage(){const input=document.getElementById('messageInput');const text=input.value.trim();if(!text){alert('Enter a message');return;}if(!selectedFriend){alert('Select a friend');return;}if(!socket||!socket.connected){alert('Connection lost. Refreshing...');location.reload();return;}console.log('Sending message to',selectedFriend.username,':',text);socket.emit('send_message',{receiverId:selectedFriend.id,text:text});input.value='';}
+        
+        function openAddFriend(){document.getElementById('addFriendModal').classList.add('active');document.getElementById('friendUsername').focus();}
+        
+        function closeAddFriend(){document.getElementById('addFriendModal').classList.remove('active');document.getElementById('friendUsername').value='';}
+        
+        async function addFriend(){const username=document.getElementById('friendUsername').value.trim();if(!username)return;try{const res=await fetch('/api/friends/add',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`},body:JSON.stringify({friendUsername:username})});if(!res.ok)throw new Error((await res.json()).error);closeAddFriend();loadFriends();}catch(err){alert(err.message);}}
+        
+        function logout(){localStorage.removeItem('mesnap_token');location.reload();}
+        
+        window.addEventListener('load',()=>{const token=localStorage.getItem('mesnap_token');if(token){fetch('/api/auth/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}).then(r=>r.json()).then(data=>{currentUser=data.user;initApp();}).catch(()=>{localStorage.removeItem('mesnap_token');});}});
+        
+        let allUsersCache=[];
+        function openAdminPanel(){loadAllUsers();loadSystemStats();document.getElementById('adminModal').classList.add('active');}
+        function closeAdminPanel(){document.getElementById('adminModal').classList.remove('active');}
+        
+        async function loadSystemStats(){try{const res=await fetch('/api/admin/stats',{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const stats=await res.json();document.getElementById('totalUsers').textContent=stats.totalUsers||0;document.getElementById('totalMessages').textContent=stats.totalMessages||0;document.getElementById('totalFriendships').textContent=stats.totalFriendships||0;}catch(err){console.error(err);}}
+        
+        async function loadAllUsers(){try{const res=await fetch('/api/admin/users',{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const users=await res.json();allUsersCache=users;renderUsers(users);populateUserDropdowns(users);}catch(err){console.error(err);}}
+        
+        function populateUserDropdowns(users){const sel1=document.getElementById('clearChatUser1');const sel2=document.getElementById('clearChatUser2');sel1.innerHTML='<option value="">Select User 1</option>';sel2.innerHTML='<option value="">Select User 2</option>';users.forEach(u=>{const opt1=document.createElement('option');opt1.value=u.id;opt1.textContent=u.username;sel1.appendChild(opt1);const opt2=document.createElement('option');opt2.value=u.id;opt2.textContent=u.username;sel2.appendChild(opt2);});}
+        
+        function renderUsers(users){const list=document.getElementById('adminUsersList');list.innerHTML='';users.forEach(u=>{const div=document.createElement('div');div.className='user-item';const ipText=u.latest_ip?`<div class="user-item-email" style="font-family:monospace; color:#888; font-size:11px;">IP: ${u.latest_ip}</div>`:'';div.innerHTML=`<div class="user-item-info"><div class="user-item-name">${u.username}</div><div class="user-item-email">${u.email}</div>${ipText}</div>`;const actions=document.createElement('div');actions.className='user-actions';if(u.username!=='coopsiguess'){const editBtn=document.createElement('button');editBtn.className='btn-view-user';editBtn.textContent='Edit';editBtn.onclick=()=>openEditUser(u.id,u.username,u.email);actions.appendChild(editBtn);if(u.latest_ip){const banBtn=document.createElement('button');banBtn.className='btn-delete-user';banBtn.textContent='Ban IP';banBtn.style.fontSize='11px';banBtn.onclick=()=>openIPBanModal(u.latest_ip);actions.appendChild(banBtn);}const banDevBtn=document.createElement('button');banDevBtn.className='btn-delete-user';banDevBtn.textContent='Ban Device';banDevBtn.style.fontSize='11px';banDevBtn.onclick=()=>loadUserDevices(u.id,u.username);actions.appendChild(banDevBtn);const viewBtn=document.createElement('button');viewBtn.className='btn-view-user';viewBtn.textContent='View Stats';viewBtn.onclick=()=>viewUserStats(u.id,u.username);actions.appendChild(viewBtn);const clearBtn=document.createElement('button');clearBtn.className='btn-clear-msgs';clearBtn.textContent='Clear Msgs';clearBtn.onclick=()=>clearUserMessages(u.id,u.username);actions.appendChild(clearBtn);const delBtn=document.createElement('button');delBtn.className='btn-delete-user';delBtn.textContent='Delete';delBtn.onclick=()=>deleteUser(u.id,u.username);actions.appendChild(delBtn);}div.appendChild(actions);list.appendChild(div);});}
+        
+        function filterUsers(){const search=document.getElementById('userSearch').value.toLowerCase();const filtered=allUsersCache.filter(u=>u.username.toLowerCase().includes(search)||u.email.toLowerCase().includes(search)||u.latest_ip?.includes(search));renderUsers(filtered);}
+        
+        async function deleteUser(userId,username){if(!confirm(`Delete user ${username}? This will remove all their messages and friendships.`))return;try{const res=await fetch(`/api/admin/users/${userId}`,{method:'DELETE',headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});if(!res.ok)throw new Error('Delete failed');loadAllUsers();loadSystemStats();}catch(err){alert(err.message);}}
+        
+        async function clearUserMessages(userId,username){if(!confirm(`Clear all messages for ${username}?`))return;try{const res=await fetch(`/api/admin/messages/${userId}`,{method:'DELETE',headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const data=await res.json();if(!res.ok)throw new Error('Clear failed');alert(`Deleted ${data.deleted} messages for ${username}`);loadSystemStats();}catch(err){alert(err.message);}}
+        
+        async function clearChat(){const user1=document.getElementById('clearChatUser1').value;const user2=document.getElementById('clearChatUser2').value;if(!user1||!user2){alert('Select both users');return;}if(user1===user2){alert('Select different users');return;}const user1Name=allUsersCache.find(u=>u.id==user1)?.username;const user2Name=allUsersCache.find(u=>u.id==user2)?.username;if(!confirm(`Clear all chat between ${user1Name} and ${user2Name}?`))return;try{const res=await fetch(`/api/admin/chat/${user1}/${user2}`,{method:'DELETE',headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const data=await res.json();if(!res.ok)throw new Error('Clear failed');alert(`Cleared ${data.deleted} messages between ${user1Name} and ${user2Name}`);loadSystemStats();document.getElementById('clearChatUser1').value='';document.getElementById('clearChatUser2').value='';}catch(err){alert(err.message);}}
+        
+        async function viewUserStats(userId,username){try{const res=await fetch(`/api/admin/user/${userId}`,{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const stats=await res.json();if(!res.ok)throw new Error('Failed to load stats');alert(`User Stats: ${username}\n\nMessages Sent: ${stats.messagesSent}\nMessages Received: ${stats.messagesReceived}\nFriends: ${stats.friendCount}\nJoined: ${new Date(stats.user.created_at).toLocaleDateString()}`);}catch(err){alert(err.message);}}
+        
+        async function loadAllMessages(){try{const res=await fetch('/api/admin/messages',{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const messages=await res.json();const list=document.getElementById('adminMessagesList');list.innerHTML='';if(messages.length===0){list.innerHTML='<p style="color:#999; padding:10px;">No messages yet</p>';return;}messages.forEach(m=>{const div=document.createElement('div');div.className='admin-msg-item';const time=new Date(m.created_at).toLocaleString();const text=m.text||'[Image]';div.innerHTML=`<div><span class="admin-msg-from">${m.sender_name}</span> → <span class="admin-msg-to">${m.receiver_name}</span></div><div class="admin-msg-text">${text.substring(0,100)}${text.length>100?'...':''}</div><div class="admin-msg-time">${time}</div>`;list.appendChild(div);});}catch(err){console.error(err);alert('Failed to load messages');}}
+        
+        async function sendBroadcast(){const input=document.getElementById('broadcastInput');const message=input.value.trim();if(!message){alert('Enter a message');return;}if(!confirm(`Send broadcast to all users?\n\n"${message}"`))return;try{const res=await fetch('/api/admin/broadcast',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`},body:JSON.stringify({message})});const data=await res.json();if(!res.ok)throw new Error('Broadcast failed');alert(`Broadcast sent to ${data.sent} users!`);input.value='';loadSystemStats();}catch(err){alert(err.message);}}
+        
+        let editingUserId=null;
+        function openEditUser(userId,username,email){editingUserId=userId;document.getElementById('editUserName').textContent=username;document.getElementById('editUsername').value='';document.getElementById('editEmail').value='';document.getElementById('editPassword').value='';document.getElementById('editUsername').placeholder=`Current: ${username}`;document.getElementById('editEmail').placeholder=`Current: ${email}`;document.getElementById('editUserModal').classList.add('active');}
+        function closeEditUser(){editingUserId=null;document.getElementById('editUserModal').classList.remove('active');}
+        async function saveUserEdit(){if(!editingUserId)return;const username=document.getElementById('editUsername').value.trim();const email=document.getElementById('editEmail').value.trim();const password=document.getElementById('editPassword').value;if(!username&&!email&&!password){alert('Please enter at least one field to update');return;}const updates={};if(username)updates.username=username;if(email)updates.email=email;if(password)updates.password=password;const confirmMsg=`Update user with:\n${username?`New username: ${username}\n`:''}${email?`New email: ${email}\n`:''}${password?`New password: (hidden)\n`:''}`;if(!confirm(confirmMsg))return;try{const res=await fetch(`/api/admin/users/${editingUserId}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`},body:JSON.stringify(updates)});const data=await res.json();if(!res.ok)throw new Error(data.error||'Update failed');alert('User updated successfully!');closeEditUser();loadAllUsers();loadSystemStats();}catch(err){alert(err.message);}}
+        
+        let banningIP=null;
+        function openIPBanModal(ip){banningIP=ip;document.getElementById('banIPAddress').textContent=ip;document.getElementById('banReason').value='';document.getElementById('ipBanModal').classList.add('active');}
+        function closeIPBanModal(){banningIP=null;document.getElementById('ipBanModal').classList.remove('active');}
+        async function confirmIPBan(){if(!banningIP)return;const reason=document.getElementById('banReason').value.trim();if(!confirm(`Ban IP ${banningIP}?${reason?`\nReason: ${reason}`:''}`))return;try{const res=await fetch('/api/admin/ip-bans',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`},body:JSON.stringify({ip:banningIP,reason:reason||null})});const data=await res.json();if(!res.ok)throw new Error(data.error||'Ban failed');alert(`IP ${banningIP} has been banned!`);closeIPBanModal();loadAllUsers();loadIPBans();}catch(err){alert(err.message);}}
+        
+        async function loadIPBans(){try{const res=await fetch('/api/admin/ip-bans',{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const bans=await res.json();const list=document.getElementById('ipBansList');list.innerHTML='';if(bans.length===0){list.innerHTML='<p style="color:#999; padding:10px;">No banned IPs</p>';return;}bans.forEach(b=>{const div=document.createElement('div');div.className='user-item';div.innerHTML=`<div class="user-item-info"><div class="user-item-name" style="font-family:monospace;">${b.ip_address}</div><div class="user-item-email" style="font-size:11px;">${b.reason||'No reason'}</div><div class="user-item-email" style="font-size:10px; color:#666;">Banned: ${new Date(b.banned_at).toLocaleString()}</div></div>`;const actions=document.createElement('div');actions.className='user-actions';const unbanBtn=document.createElement('button');unbanBtn.className='btn-view-user';unbanBtn.textContent='Unban';unbanBtn.onclick=()=>unbanIP(b.ip_address);actions.appendChild(unbanBtn);div.appendChild(actions);list.appendChild(div);});}catch(err){console.error(err);}}
+        
+        async function unbanIP(ip){if(!confirm(`Unban IP ${ip}?`))return;try{const res=await fetch(`/api/admin/ip-bans/${ip}`,{method:'DELETE',headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const data=await res.json();if(!res.ok)throw new Error('Unban failed');alert(`IP ${ip} has been unbanned!`);loadIPBans();}catch(err){alert(err.message);}}
+
+        let banningFingerprint=null;
+        async function loadUserDevices(userId, username) {
+            try {
+                const res = await fetch(`/api/admin/user-devices/${userId}`, {
+                    headers: {'Authorization': `Bearer ${localStorage.getItem('mesnap_token')}`}
+                });
+                const devices = await res.json();
+                if (!devices || devices.length === 0) {
+                    alert(`No devices found for ${username}`);
+                    return;
+                }
+                
+                // Show a device selection modal
+                let html = `<p style="color: #999; margin-bottom: 15px;">Select a device to ban for <strong>${username}</strong>:</p>`;
+                devices.forEach((dev, idx) => {
+                    html += `<div style="background: #1a1a1a; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #444; cursor: pointer;" onclick="selectDeviceToBan('${dev.fingerprint}', '${username}')">
+                        <div style="font-family: monospace; color: #FFFC00; font-size: 11px;">${dev.fingerprint.substring(0, 16)}...</div>
+                        <div style="font-size: 11px; color: #888;">Agent: ${dev.user_agent.substring(0, 40)}...</div>
+                        <div style="font-size: 10px; color: #666;">Last seen: ${new Date(dev.last_seen).toLocaleString()}</div>
+                    </div>`;
+                });
+                
+                const modal = document.createElement('div');
+                modal.id = 'deviceSelectModal';
+                modal.className = 'admin-modal';
+                modal.style.display = 'flex';
+                modal.style.position = 'fixed';
+                modal.style.top = '0';
+                modal.style.left = '0';
+                modal.style.width = '100%';
+                modal.style.height = '100%';
+                modal.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                modal.style.zIndex = '5000';
+                modal.style.alignItems = 'center';
+                modal.style.justifyContent = 'center';
+                
+                const content = document.createElement('div');
+                content.className = 'admin-content';
+                content.style.maxWidth = '500px';
+                content.style.maxHeight = '500px';
+                content.style.overflowY = 'auto';
+                content.innerHTML = `<div style="padding: 20px;">${html}<button class="btn-primary" onclick="document.getElementById('deviceSelectModal').remove()" style="width: 100%; margin-top: 15px;">Cancel</button></div>`;
+                
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+            } catch (err) {
+                alert('Failed to load devices: ' + err.message);
+            }
+        }
+        
+        function selectDeviceToBan(fingerprint, username) {
+            document.getElementById('deviceSelectModal').remove();
+            openHardwareBanModal(fingerprint);
+        }
+        
+        function openHardwareBanModal(fingerprint){banningFingerprint=fingerprint;document.getElementById('banDeviceFingerprint').textContent=fingerprint.substring(0,16)+'...';document.getElementById('banDeviceReason').value='';document.getElementById('hardwareBanModal').classList.add('active');}
+        function closeHardwareBanModal(){banningFingerprint=null;document.getElementById('hardwareBanModal').classList.remove('active');}
+        async function confirmHardwareBan(){if(!banningFingerprint)return;const reason=document.getElementById('banDeviceReason').value.trim();if(!confirm(`Ban this device?${reason?`\nReason: ${reason}`:''}`))return;try{const res=await fetch('/api/admin/hardware-bans',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`},body:JSON.stringify({fingerprint:banningFingerprint,reason:reason||null})});const data=await res.json();if(!res.ok)throw new Error(data.error||'Ban failed');alert('Device has been banned!');closeHardwareBanModal();loadHardwareBans();}catch(err){alert(err.message);}}
+        
+        async function loadHardwareBans(){try{const res=await fetch('/api/admin/hardware-bans',{headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const bans=await res.json();const list=document.getElementById('hardwareBansList');list.innerHTML='';if(bans.length===0){list.innerHTML='<p style="color:#999; padding:10px;">No banned devices</p>';return;}bans.forEach(b=>{const div=document.createElement('div');div.className='user-item';div.innerHTML=`<div class="user-item-info"><div class="user-item-name" style="font-family:monospace; font-size:11px;">${b.fingerprint.substring(0,16)}...</div><div class="user-item-email" style="font-size:11px;">${b.reason||'No reason'}</div><div class="user-item-email" style="font-size:10px; color:#666;">Banned: ${new Date(b.banned_at).toLocaleString()}</div></div>`;const actions=document.createElement('div');actions.className='user-actions';const unbanBtn=document.createElement('button');unbanBtn.className='btn-view-user';unbanBtn.textContent='Unban';unbanBtn.onclick=()=>unbanDevice(b.fingerprint);actions.appendChild(unbanBtn);div.appendChild(actions);list.appendChild(div);});}catch(err){console.error(err);}}
+        
+        async function unbanDevice(fingerprint){if(!confirm('Unban this device?'))return;try{const res=await fetch(`/api/admin/hardware-bans/${fingerprint}`,{method:'DELETE',headers:{'Authorization':`Bearer ${localStorage.getItem('mesnap_token')}`}});const data=await res.json();if(!res.ok)throw new Error('Unban failed');alert('Device has been unbanned!');loadHardwareBans();}catch(err){alert(err.message);}}
+    </script>
+</body>
+</html>
