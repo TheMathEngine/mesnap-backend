@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en"><head><base target="_blank">
+
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<body>
     <title>Math Engine</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
         :root {
             --bd-dark: #0f0c29;
             --bg-gradient: linear-gradient(0deg, #ffb3ff, #0091ff);
@@ -27,6 +31,77 @@
             min-height: 100vh;
             overflow-x: hidden;
             background-attachment: fixed;
+        }
+
+        .frosted-clock-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .frosted-clock {
+            font-family: 'DM Sans', sans-serif;
+            background: rgba(255, 255, 255, 0);
+            border: 5px solid #ffb3ff;
+            border-radius: 24px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            padding: 24px 28px;
+            max-width: 360px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .frosted-clock__time {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #111;
+        }
+
+        .frosted-clock__date {
+            margin-top: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #1f1f1f;
+        }
+
+        .frosted-clock__battery {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #111;
+        }
+
+        .frosted-clock__battery-shell {
+            width: 46px;
+            height: 20px;
+            border: 2px solid #111;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .frosted-clock__battery-shell::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: 5px;
+            width: 4px;
+            height: 8px;
+            border-radius: 2px;
+            background: #111;
+        }
+
+        .frosted-clock__battery-fill {
+            height: 100%;
+            width: 0%;
+            background: #22c55e;
+            transition: width 0.4s ease, background 0.4s ease;
         }
 
         /* LIQUID GLASS CARD STYLE */
@@ -254,6 +329,79 @@
         }
 
         #home-btn:hover .home-icon {
+            color: var(--neon-blue);
+        }
+
+        /* ----------------------------------------------------
+           EXPANDING BACK TO TOP BUTTON
+           ---------------------------------------------------- */
+        #back-to-top {
+            position: fixed;
+            right: 25px;
+            bottom: 25px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            cursor: pointer;
+            z-index: 10001;
+            overflow: hidden;
+            transition: width 0.4s cubic-bezier(0.4, 0.0, 0.2, 1), box-shadow 0.3s, opacity 0.3s, transform 0.3s;
+            padding: 0;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(10px);
+        }
+
+        #back-to-top.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .back-to-top-icon {
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .back-to-top-text {
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            opacity: 0;
+            transform: translateX(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-size: 0.95rem;
+            padding-right: 22px;
+        }
+
+        #back-to-top:hover {
+            width: 210px;
+            box-shadow: 0 0 25px var(--neon-blue), inset 0 0 10px rgba(255,255,255,0.1);
+            border-color: var(--neon-blue);
+        }
+
+        #back-to-top:hover .back-to-top-text {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        #back-to-top:hover .back-to-top-icon {
             color: var(--neon-blue);
         }
 
@@ -746,11 +894,7 @@
         }
 
     </style>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&amp;display=swap">
-<link rel="icon" type="image/png" href="/images/favicon.png">
-</head>
-<body>
-
+    
     <!-- SETTINGS BUTTON -->
     <button id="settings-btn" onclick="toggleSettingsMenu()" title="Settings">⚙️</button>
 
@@ -836,7 +980,19 @@
 
     <!-- MAIN DASHBOARD -->
     <div id="main-dashboard" class="dashboard-container">
-        
+        <div class="frosted-clock-wrap">
+            <div class="frosted-clock" aria-live="polite">
+                <div id="frostedClockTime" class="frosted-clock__time">--:--:--</div>
+                <div id="frostedClockDate" class="frosted-clock__date">Loading date...</div>
+                <div class="frosted-clock__battery" id="frostedClockBattery">
+                    <div class="frosted-clock__battery-shell" aria-hidden="true">
+                        <div id="frostedClockBatteryFill" class="frosted-clock__battery-fill"></div>
+                    </div>
+                    <span id="frostedClockBatteryLevel">--%</span>
+                </div>
+            </div>
+        </div>
+
         <header>
             <h1 onclick="document.location='/index.html'" class="metitle">Math Engine</h1>
             <div class="search-wrapper glass-panel">
@@ -2046,7 +2202,14 @@
 
         </div>
 
-    </div><div class="colorExtractorInterface" style="z-index: 2147483647; position: fixed; top: 16px; left: 997px; border: 2px solid rgb(247, 178, 122); border-radius: 10px; display: none;"></div><div id="feedback-banner" style="display: none;"></div><div style="position: fixed; right: 20px; bottom: 20px; z-index: 2112312321321312321; display: none"></div>
+    </div>
+
+    <button id="back-to-top" aria-label="Back to top">
+        <div class="back-to-top-icon">&#8593;</div>
+        <div class="back-to-top-text">Back to Top</div>
+    </button>
+
+    <div class="colorExtractorInterface" style="z-index: 2147483647; position: fixed; top: 16px; left: 997px; border: 2px solid rgb(247, 178, 122); border-radius: 10px; display: none;"></div><div id="feedback-banner" style="display: none;"></div><div style="position: fixed; right: 20px; bottom: 20px; z-index: 2112312321321312321; display: none"></div>
 
     <!-- GAME OVERLAY (HIDDEN UNTIL CLICKED) -->
     <div id="game-overlay">
@@ -2423,6 +2586,81 @@
                 }
             }
         }
+
+        function updateFrostedClock() {
+            const timeEl = document.getElementById('frostedClockTime');
+            const dateEl = document.getElementById('frostedClockDate');
+            if (!timeEl || !dateEl) {
+                return;
+            }
+            const now = new Date();
+            timeEl.textContent = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            dateEl.textContent = now.toLocaleDateString(undefined, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function updateFrostedBattery() {
+            const fillEl = document.getElementById('frostedClockBatteryFill');
+            const levelEl = document.getElementById('frostedClockBatteryLevel');
+            if (!fillEl || !levelEl) {
+                return;
+            }
+
+            if (!('getBattery' in navigator)) {
+                levelEl.textContent = 'N/A';
+                fillEl.style.width = '0%';
+                fillEl.style.background = '#111';
+                return;
+            }
+
+            navigator.getBattery().then(function (battery) {
+                const level = Math.round(battery.level * 100);
+                let color = '#22c55e';
+                if (level <= 10) {
+                    color = '#ef4444';
+                } else if (level <= 30) {
+                    color = '#f59e0b';
+                }
+                fillEl.style.width = `${level}%`;
+                fillEl.style.background = color;
+                levelEl.textContent = `${level}%`;
+            });
+        }
+
+        function setupBackToTop() {
+            const btn = document.getElementById('back-to-top');
+            if (!btn) {
+                return;
+            }
+
+            const toggleVisibility = function () {
+                if (window.scrollY > 200) {
+                    btn.classList.add('show');
+                } else {
+                    btn.classList.remove('show');
+                }
+            };
+
+            toggleVisibility();
+            window.addEventListener('scroll', toggleVisibility, { passive: true });
+            btn.addEventListener('click', function () {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        updateFrostedClock();
+        updateFrostedBattery();
+        setupBackToTop();
+        setInterval(updateFrostedClock, 1000);
+        setInterval(updateFrostedBattery, 60000);
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', initializeFavorites);
